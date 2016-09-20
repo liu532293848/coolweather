@@ -3,7 +3,6 @@ package com.liu.coolweather.activity;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import com.liu.coolweather.R;
 import com.liu.coolweather.db.CoolWeatherDB;
 import com.liu.coolweather.model.City;
@@ -15,7 +14,10 @@ import com.liu.coolweather.util.Utility;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -65,13 +67,21 @@ public class ChooseAreaActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		requestWindowFeature(Window.FEATURE_NO_TITLE);//去掉标题
-		setContentView(R.layout.choose_area);//设置界面
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		if (prefs.getBoolean("city_selected", false)) {
+			Intent intent = new Intent(this, WeatherActivity.class);
+			startActivity(intent);
+			finish();
+			return;
+		}
+		requestWindowFeature(Window.FEATURE_NO_TITLE);// 去掉标题
+		setContentView(R.layout.choose_area);// 设置界面
 		listView = (ListView) findViewById(R.id.list_view);
 		titleText = (TextView) findViewById(R.id.title_text);
 		adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_list_item_1, dataList);//创建适配器
-		listView.setAdapter(adapter);//绑定适配器
+				android.R.layout.simple_list_item_1, dataList);// 创建适配器
+		listView.setAdapter(adapter);// 绑定适配器
 		coolWeatherDB = CoolWeatherDB.getInstance(this);
 		listView.setOnItemClickListener(new OnItemClickListener() {
 			@Override
@@ -83,6 +93,14 @@ public class ChooseAreaActivity extends Activity {
 				} else if (currentLevel == LEVEL_CITY) {
 					selectedCity = cityList.get(index);
 					queryCounties();
+				} else if (currentLevel == LEVEL_COUNTY) {
+					String countyCode = countyList.get(index).getCountyCode();
+					Log.d("test", countyCode);
+					Intent intent = new Intent(ChooseAreaActivity.this,
+							WeatherActivity.class);
+					intent.putExtra("county_code", countyCode);
+					startActivity(intent);
+					finish();
 				}
 			}
 		});
@@ -93,7 +111,7 @@ public class ChooseAreaActivity extends Activity {
 	 * 查询全国所有的省，优先从数据库查询，如果没有查询到再去服务器上查询。
 	 */
 	private void queryProvinces() {
-		provinceList = coolWeatherDB.loadProvinces();//从数据库读取全国所有的省份信息。
+		provinceList = coolWeatherDB.loadProvinces();// 从数据库读取全国所有的省份信息。
 		if (provinceList.size() > 0) {
 			dataList.clear();
 			for (Province province : provinceList) {
@@ -122,7 +140,7 @@ public class ChooseAreaActivity extends Activity {
 			listView.setSelection(0);
 			titleText.setText(selectedProvince.getProvinceName());
 			currentLevel = LEVEL_CITY;
-			
+
 		} else {
 			queryFromServer(selectedProvince.getProvinceCode(), "city");
 		}
